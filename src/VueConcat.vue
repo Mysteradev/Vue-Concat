@@ -1,7 +1,7 @@
 <template>
     <div class="player">
-        <div id='audio-players'></div>
-        <div id="video-players">
+        <div id='audio-player'></div>
+        <div id="video-player">
             <div id="progress" class="progress-seek">
                 <button @click="playerButton()" id="playPauseBtn"><i class='fa fa-pause'></i></button>
                 <input type="range" class="slider" id="seek-bar" value="0">
@@ -23,21 +23,26 @@
                 currentZIndex: 1000
             }
         },
-        props: ['playlist'],
+        props: {
+            playlist: {
+                type: [Array, Object],
+                required: true
+            }
+        },
         mounted: function () {
             let self = this;
-            let videoplayers = document.getElementById("video-players");
-            let audioplayers = document.getElementById("audio-players");
+            const videoPlayer = document.getElementById("video-player");
+            const audioPlayer = document.getElementById("audio-player");
             let videoDuration = 0;
 
             // Get duration of each video
-            for (let index=0; index<this.playlist.length; index++) {
+            for (let index=0; index < this.playlist.length; index++) {
                 self.playlist[index].timeInPlaylist = [];
                 self.playlist[index].duration = 0;
                 let audio = document.createElement('audio');
                 audio.setAttribute('id', 'audio' + index);
                 audio.setAttribute('src', self.playlist[index].bucketRef);
-                audioplayers.appendChild(audio);
+                audioPlayer.appendChild(audio);
                 audio.addEventListener('canplaythrough', function(e){
                     videoDuration = Math.round(e.currentTarget.duration);
                     self.playlist[index].duration = videoDuration;
@@ -47,7 +52,7 @@
             let numOfTimes = 0;
             let keepCheckingForDuration = setInterval(function () {
                 let playlistLength = 0;
-                for (let index=0; index<self.playlist.length; index++) {
+                for (let index = 0; index < self.playlist.length; index++) {
                     self.playlist[index].timeInPlaylist[0] = playlistLength;
                     playlistLength = playlistLength + self.playlist[index].duration;
                     self.playlist[index].timeInPlaylist[1] = playlistLength;
@@ -57,18 +62,18 @@
                 }
             }, 1000);
             // Preload videos and play the first one
-            for (let i=0; i<self.playlist.length; i++) {
+            for (let i = 0; i < self.playlist.length; i++) {
                 let newPlayer = document.createElement('video');
                 newPlayer.setAttribute('id', 'player' + i);
 
                 // preload each video
                 newPlayer.src = self.playlist[i].bucketRef;
                 newPlayer.load();
-                videoplayers.appendChild(newPlayer);
+                videoPlayer.appendChild(newPlayer);
                 document.getElementById('player' + i).volume = 1;
                 self.players[i] = document.getElementById('player' + i);
             }
-            for (let i=0; i<self.players.length; i++) {
+            for (let i = 0; i < self.players.length; i++) {
                 self.players[i].onended = function() { self.switchVideo() };
                 self.players[i].onclick = function() { self.playerButton() };
                 self.players[i].style.maxWidth = "100%";
@@ -171,7 +176,7 @@
             },
             getTotalDuration(playlist) {
                 let duration = 0;
-                for (let i=0; i<playlist.length; i++) {
+                for (let i = 0; i < playlist.length; i++) {
                     duration += playlist[i].duration
                 }
                 return duration
@@ -179,7 +184,7 @@
             checkSeekBarVideo(seekValue, index) {
                 let seekBar = document.getElementById('seek-bar');
                 // If current seek value is in the range of this particular video, rewind/forward it
-                if ((seekValue < ((this.playlist[index].timeInPlaylist[1]) / this.getTotalDuration(this.playlist))*100) && (seekValue > (this.playlist[index].timeInPlaylist[0]/ this.getTotalDuration(this.playlist))*100)) {
+                if ((seekValue < ((this.playlist[index].timeInPlaylist[1]) / this.getTotalDuration(this.playlist)) * 100) && (seekValue > (this.playlist[index].timeInPlaylist[0] / this.getTotalDuration(this.playlist)) * 100)) {
                     seekBar.value = seekValue;
                     this.currentPlayer.currentTime = ((this.getTotalDuration(this.playlist) * (seekValue / 100)) - this.playlist[index].timeInPlaylist[0]);
                     let playPromise = this.currentPlayer.play();
@@ -194,7 +199,7 @@
                 } // Otherwise, load a different video that's in this range
                 else {
                     let seekTo = this.getTotalDuration(this.playlist) * (seekValue / 100);
-                    for (let i=0; i<this.playlist.length; i++) {
+                    for (let i = 0; i < this.playlist.length; i++) {
                         if ((seekTo < this.playlist[i].timeInPlaylist[1]) && (seekTo > this.playlist[i].timeInPlaylist[0])) {
                             let playPromise = this.currentPlayer.pause();
                             if (playPromise !== undefined) {
@@ -225,3 +230,115 @@
         }
     }
 </script>
+
+<style>
+    .player {
+        max-width: 770px;
+    }
+    button#playPauseBtn {
+        padding: 0;
+        margin-right: 10px;
+        color: rgba(255,255,255,0.85);
+        border-radius: 0;
+        background-color: rgba(0,0,0,0);
+    }
+    #progress {
+        position: absolute;
+        z-index: 2000;
+        bottom: 0;
+        width: 99.96%;
+        background-color: rgba(0,0,0,0.7);
+        left: 0;
+    }
+
+    input[type=range].slider {
+        width: 90%;
+        margin: 10px 0;
+        background-color: rgba(0,0,0,0.1);
+        border-radius: 0;
+    }
+    input[type=range].slider:focus {
+        outline: none;
+    }
+    input[type=range].slider::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 10px;
+        cursor: pointer;
+        /* box-shadow: 0px 0px 0.3px #000000, 0px 0px 0px #0d0d0d; */
+        background: #484d4d;
+        border-radius: 2.5px;
+        border: 0px solid #010101;
+    }
+    input[type=range].slider::-webkit-slider-thumb {
+        box-shadow: 0px 0px 1px #730000, 0px 0px 0px #8d0000;
+        border: 0px solid rgba(108, 202, 149, 0.48);
+        height: 28px;
+        width: 13px;
+        border-radius: 7px;
+        background: rgba(208, 0, 1, 0.93);
+        cursor: pointer;
+        -webkit-appearance: none;
+        margin-top: -3px;
+    }
+    input[type=range].slider:focus::-webkit-slider-runnable-track {
+        background: #abb1b1;
+    }
+    input[type=range].slider::-moz-range-track {
+        width: 100%;
+        height: 10px;
+        cursor: pointer;
+        background: #484d4d;
+        border: 0;
+    }
+    input[type=range].slider::-moz-range-thumb {
+        box-shadow: 0px 0px 1px #730000, 0px 0px 0px #8d0000;
+        border: 0px solid rgba(108, 202, 149, 0.48);
+        height: 28px;
+        width: 13px;
+        border-radius: 7px;
+        background: rgba(208, 0, 1, 0.93);
+        cursor: pointer;
+    }
+    input[type=range].slider::-ms-track {
+        width: 100%;
+        height: 10px;
+        cursor: pointer;
+        background: transparent;
+        border-color: transparent;
+        color: transparent;
+    }
+    input[type=range].slider::-ms-fill-lower {
+        background: #000000;
+        border: 0px solid #010101;
+        border-radius: 5px;
+        box-shadow: 0px 0px 0.3px #000000, 0px 0px 0px #0d0d0d;
+    }
+    input[type=range].slider::-ms-fill-upper {
+        background: #484d4d;
+        border: 0px solid #010101;
+        border-radius: 5px;
+        box-shadow: 0px 0px 0.3px #000000, 0px 0px 0px #0d0d0d;
+    }
+    input[type=range].slider::-ms-thumb {
+        box-shadow: 0px 0px 1px #730000, 0px 0px 0px #8d0000;
+        border: 0px solid rgba(108, 202, 149, 0.48);
+        height: 28px;
+        width: 13px;
+        border-radius: 7px;
+        background: rgba(208, 0, 1, 0.93);
+        cursor: pointer;
+        height: 10px;
+    }
+    input[type=range].slider:focus::-ms-fill-lower {
+        background: #484d4d;
+    }
+    input[type=range].slider:focus::-ms-fill-upper {
+        background: #abb1b1;
+    }
+    #video-player {
+        position: relative;
+        height: 390px;
+        width: 90%;
+        margin: 0 auto;
+    }
+</style>
